@@ -1,23 +1,52 @@
-import { useState, useEffect } from "react";
-import { MessageSquare, Search, Filter, Trash2, Reply, Eye, Check, X, Mail, Phone, Calendar } from "lucide-react";
-import { messageStorage, CustomerMessage } from "../../lib/messageStorage";
+import { useState } from "react";
+import { MessageSquare, CheckCircle, Trash2, Mail, Eye } from "lucide-react";
+
+interface Message {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  subject: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+  priority: "low" | "medium" | "high";
+}
 
 const MessagesManagement = () => {
-  const [messages, setMessages] = useState<CustomerMessage[]>([]);
-  const [filteredMessages, setFilteredMessages] = useState<CustomerMessage[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "read" | "unread">("all");
-  const [priorityFilter, setPriorityFilter] = useState<"all" | "low" | "medium" | "high">("all");
-  const [selectedMessage, setSelectedMessage] = useState<CustomerMessage | null>(null);
-
-  useEffect(() => {
-    // Load messages from messageStorage
-    const storedMessages = messageStorage.getMessages();
-    setMessages(storedMessages);
-    setFilteredMessages(storedMessages);
-  }, []);
-
-  useEffect(() => {
+  const [messages] = useState<Message[]>([
+    {
+      id: "1",
+      name: "John Smith",
+      email: "john@example.com",
+      phone: "+1 555-1234",
+      subject: "Website Design Inquiry",
+      message: "I'm interested in getting a website designed for my business. Can you help?",
+      read: false,
+      created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      priority: "high",
+    },
+    {
+      id: "2",
+      name: "Sarah Johnson",
+      email: "sarah@example.com",
+      subject: "E-commerce Store",
+      message: "I need an online store for my handmade jewelry business.",
+      read: true,
+      created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+      priority: "medium",
+    },
+    {
+      id: "3",
+      name: "Mike Davis",
+      email: "mike@example.com",
+      subject: "Website Maintenance",
+      message: "Can you help maintain my existing WordPress website?",
+      read: true,
+      created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+      priority: "low",
+    },
+  ]);
     // Apply filters
     let filtered = messages;
 

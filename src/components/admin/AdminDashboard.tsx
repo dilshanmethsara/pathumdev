@@ -1,6 +1,4 @@
-import { useState, useEffect } from "react";
 import { MessageSquare, ShoppingCart, Users, TrendingUp, Eye, Clock, CheckCircle, AlertCircle } from "lucide-react";
-import { messageStorage, CustomerMessage, CustomerOrder, Customer } from "../../lib/messageStorage";
 
 interface DashboardStats {
   totalMessages: number;
@@ -23,68 +21,44 @@ interface RecentActivity {
 }
 
 const AdminDashboard = () => {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalMessages: 0,
-    unreadMessages: 0,
-    totalOrders: 0,
-    pendingOrders: 0,
-    totalCustomers: 0,
-    newCustomers: 0,
-    revenue: 0,
-    growth: 0,
-  });
+  // Simple static stats - no backend needed
+  const stats: DashboardStats = {
+    totalMessages: 12,
+    unreadMessages: 3,
+    totalOrders: 8,
+    pendingOrders: 2,
+    totalCustomers: 15,
+    newCustomers: 4,
+    revenue: 2500,
+    growth: 15,
+  };
 
-  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
-
-  useEffect(() => {
-    // Load data from messageStorage
-    const messages = messageStorage.getMessages();
-    const orders = messageStorage.getOrders();
-    const customers = messageStorage.getCustomers();
-
-    const storageStats = messageStorage.getStats();
-
-    const newCustomersCount = customers.filter((customer) => {
-      const createdAt = new Date(customer.registrationDate);
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      return createdAt > weekAgo;
-    }).length;
-
-    setStats({
-      totalMessages: storageStats.totalMessages,
-      unreadMessages: storageStats.unreadMessages,
-      totalOrders: storageStats.totalOrders,
-      pendingOrders: storageStats.pendingOrders,
-      totalCustomers: storageStats.totalCustomers,
-      newCustomers: newCustomersCount,
-      revenue: storageStats.totalRevenue,
-      growth: 12.5, // Mock growth percentage
-    });
-
-    // Prepare recent activity
-    const activity: RecentActivity[] = [
-      ...messages.slice(0, 3).map((message) => ({
-        id: message.id,
-        type: "message" as const,
-        title: `New message from ${message.name}`,
-        description: message.message.substring(0, 50) + "...",
-        time: new Date(message.createdAt).toLocaleString(),
-        status: message.read ? ("completed" as const) : ("new" as const),
-      })),
-      ...orders.slice(0, 3).map((order) => ({
-        id: order.id,
-        type: "order" as const,
-        title: `Order #${order.id}`,
-        description: `${order.items?.length || 0} items - $${order.total || 0}`,
-        time: new Date(order.createdAt).toLocaleString(),
-        status: order.status as "pending" | "completed",
-      })),
-    ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
-     .slice(0, 5);
-
-    setRecentActivity(activity);
-  }, []);
+  const recentActivity: RecentActivity[] = [
+    { 
+      id: "1", 
+      type: "message", 
+      title: "New Message", 
+      description: "John asked about web design services", 
+      time: "2 hours ago", 
+      status: "new" 
+    },
+    { 
+      id: "2", 
+      type: "order", 
+      title: "New Order", 
+      description: "E-commerce website package ordered", 
+      time: "5 hours ago", 
+      status: "pending" 
+    },
+    { 
+      id: "3", 
+      type: "customer", 
+      title: "New Customer", 
+      description: "Sarah registered as a new customer", 
+      time: "1 day ago", 
+      status: "completed" 
+    },
+  ];
 
   const statCards = [
     {
@@ -171,34 +145,39 @@ const AdminDashboard = () => {
           <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
         </div>
         <div className="p-6">
-          {recentActivity.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No recent activity</p>
-          ) : (
-            <div className="space-y-4">
-              {recentActivity.map((activity) => (
-                <div key={activity.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <div className="flex-shrink-0">
-                      {activity.type === "message" && <MessageSquare className="w-5 h-5 text-blue-500" />}
-                      {activity.type === "order" && <ShoppingCart className="w-5 h-5 text-green-500" />}
-                      {activity.type === "customer" && <Users className="w-5 h-5 text-purple-500" />}
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{activity.title}</p>
-                      <p className="text-sm text-gray-600">{activity.description}</p>
-                    </div>
+          <div className="space-y-4">
+            {recentActivity.map((activity) => (
+              <div key={activity.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-4">
+                  <div className="flex-shrink-0">
+                    {activity.type === "message" && <MessageSquare className="w-5 h-5 text-blue-500" />}
+                    {activity.type === "order" && <ShoppingCart className="w-5 h-5 text-green-500" />}
+                    {activity.type === "customer" && <Users className="w-5 h-5 text-purple-500" />}
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1">
-                      {getStatusIcon(activity.status)}
-                    </div>
-                    <span className="text-sm text-gray-500">{activity.time}</span>
+                  <div>
+                    <p className="font-medium text-gray-900">{activity.title}</p>
+                    <p className="text-sm text-gray-600">{activity.description}</p>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1">
+                    {getStatusIcon(activity.status)}
+                  </div>
+                  <span className="text-sm text-gray-500">{activity.time}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
+      </div>
+
+      {/* Info Message */}
+      <div className="bg-blue-50 rounded-xl p-6 border border-blue-100">
+        <h3 className="text-lg font-semibold text-blue-900 mb-2">Welcome to Admin Panel</h3>
+        <p className="text-blue-700">
+          This is a simplified admin dashboard with static demo data. 
+          Connect to a backend service like Supabase or Firebase to enable real data storage and management.
+        </p>
       </div>
     </div>
   );

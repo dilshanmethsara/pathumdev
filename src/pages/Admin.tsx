@@ -6,7 +6,6 @@ import MessagesManagement from "../components/admin/MessagesManagement";
 import OrdersManagement from "../components/admin/OrdersManagement";
 import CustomersManagement from "../components/admin/CustomersManagement";
 import Analytics from "../components/admin/Analytics";
-import { apiService } from "../lib/apiService";
 
 type AdminSection = "dashboard" | "messages" | "orders" | "customers" | "analytics";
 
@@ -18,9 +17,10 @@ const Admin = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Simple authentication check
+  // Simple authentication check - just check localStorage
   useEffect(() => {
-    if (apiService.isAuthenticated()) {
+    const token = localStorage.getItem("adminToken");
+    if (token) {
       setIsAuthenticated(true);
     }
   }, []);
@@ -28,22 +28,17 @@ const Admin = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    try {
-      const result = await apiService.login(password);
-      
-      if (result.success) {
-        setIsAuthenticated(true);
-      } else {
-        alert(result.error || "Invalid password. Please try again.");
-      }
-    } catch (error) {
-      console.error("Login error:", error);
-      alert("Login failed. Please try again.");
+    // Simple password check - no backend needed
+    if (password === "admin123") {
+      localStorage.setItem("adminToken", "simple-token");
+      setIsAuthenticated(true);
+    } else {
+      alert("Invalid password. Please try again.");
     }
   };
 
   const handleLogout = () => {
-    apiService.logout();
+    localStorage.removeItem("adminToken");
     setIsAuthenticated(false);
     navigate("/");
   };

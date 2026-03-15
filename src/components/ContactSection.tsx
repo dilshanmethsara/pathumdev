@@ -1,7 +1,6 @@
 import { useState, FormEvent } from "react";
 import { Send, MessageCircle, Mail, MapPin, CheckCircle, AlertCircle, Phone } from "lucide-react";
 import ScrollReveal from "./ScrollReveal";
-import { apiService } from "../lib/apiService";
 
 const ContactSection = () => {
   const [formData, setFormData] = useState({ name: "", email: "", phone: "", subject: "", message: "" });
@@ -12,7 +11,6 @@ const ContactSection = () => {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setSubmitStatus("idle");
 
     try {
       // Validate form
@@ -24,34 +22,21 @@ const ContactSection = () => {
         throw new Error("Please enter a valid email address");
       }
 
-      // Send message via API
-      const savedMessage = await apiService.sendMessage({
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone || undefined,
-        subject: formData.subject,
-        message: formData.message,
-      });
-
-      console.log("Message sent:", savedMessage);
+      // Open email client
+      const mailtoLink = `mailto:dmcreatorstudio04@gmail.com?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(formData.message)}%0A%0AFrom: ${formData.name} (${formData.email})${formData.phone ? `%0APhone: ${formData.phone}` : ""}`;
+      window.open(mailtoLink);
 
       // Success
       setSubmitStatus("success");
-      setSubmitMessage("Thank you for your message! We'll get back to you soon.");
+      setSubmitMessage("Thank you for your message! Your email client should open now.");
       
       // Reset form
       setFormData({ name: "", email: "", phone: "", subject: "", message: "" });
 
-      // Optional: Still open email client as backup
-      setTimeout(() => {
-        const mailtoLink = `mailto:dmcreatorstudio04@gmail.com?subject=Website Inquiry from ${formData.name}&body=${encodeURIComponent(formData.message)}%0A%0AFrom: ${formData.name} (${formData.email})`;
-        window.open(mailtoLink);
-      }, 1000);
-
     } catch (error) {
-      console.error("Error submitting message:", error);
+      console.error("Error:", error);
       setSubmitStatus("error");
-      setSubmitMessage(error instanceof Error ? error.message : "Failed to send message. Please try again.");
+      setSubmitMessage(error instanceof Error ? error.message : "Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
