@@ -1,17 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import { Database } from '../types/database';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+// Real Supabase credentials
+const supabaseUrl = 'https://aookdmyzwunwekyzvfse.supabase.co';
+const supabaseAnonKey = 'sb_publishable_fURWG-ZQaMKn7Lx4Kah1Bg_nXviLfXW';
 
-// Fallback for development without Supabase setup
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase environment variables not found. Using localStorage fallback.');
-}
-
-export const supabase = supabaseUrl && supabaseAnonKey 
-  ? createClient<Database>(supabaseUrl, supabaseAnonKey)
-  : null;
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
 // Database types
 export interface CustomerMessage {
