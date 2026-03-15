@@ -70,77 +70,117 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-button"
-              >
-                {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-              </button>
-              <h1 className="ml-4 text-xl font-semibold text-gray-900">Admin Panel</h1>
+      {!isAuthenticated ? (
+        // Login Form
+        <div className="min-h-screen flex items-center justify-center bg-gray-100">
+          <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Lock className="w-8 h-8 text-primary" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900">Admin Access</h1>
+              <p className="text-gray-600 mt-2">Enter password to access the admin panel</p>
             </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors cursor-button"
-            >
-              <LogOut size={16} />
-              Logout
-            </button>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                  autoFocus
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-primary text-primary-foreground py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
+              >
+                Access Admin Panel
+              </button>
+            </form>
+            <p className="text-center text-sm text-gray-500 mt-4">
+              <a href="/" className="hover:text-primary transition-colors">← Back to Website</a>
+            </p>
           </div>
         </div>
-      </header>
-
-      <div className="flex">
-        {/* Sidebar */}
-        <aside className={`
-          fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 mt-16 lg:mt-0
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        `}>
-          <nav className="p-4 space-y-2">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              return (
+      ) : (
+        // Admin Dashboard
+        <>
+          {/* Header */}
+          <header className="bg-white shadow-sm border-b border-gray-200">
+            <div className="px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between h-16">
+                <div className="flex items-center">
+                  <button
+                    onClick={() => setSidebarOpen(!sidebarOpen)}
+                    className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-button"
+                  >
+                    {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+                  </button>
+                  <h1 className="ml-4 text-xl font-semibold text-gray-900">Admin Panel</h1>
+                </div>
                 <button
-                  key={item.id}
-                  onClick={() => {
-                    setActiveSection(item.id as AdminSection);
-                    setSidebarOpen(false);
-                  }}
-                  className={`
-                    w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors cursor-button
-                    ${activeSection === item.id
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                    }
-                  `}
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors cursor-button"
                 >
-                  <Icon size={18} />
-                  {item.label}
+                  <LogOut size={16} />
+                  Logout
                 </button>
-              );
-            })}
-          </nav>
-        </aside>
+              </div>
+            </div>
+          </header>
 
-        {/* Overlay for mobile */}
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
+          <div className="flex">
+            {/* Sidebar */}
+            <aside className={`
+              fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 mt-16 lg:mt-0
+              ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+            `}>
+              <nav className="p-4 space-y-2">
+                {menuItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setActiveSection(item.id as AdminSection);
+                        setSidebarOpen(false);
+                      }}
+                      className={`
+                        w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors cursor-button
+                        ${activeSection === item.id
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                        }
+                      `}
+                    >
+                      <Icon size={18} />
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </nav>
+            </aside>
 
-        {/* Main Content */}
-        <main className="flex-1 p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto">
-            {renderContent()}
+            {/* Overlay for mobile */}
+            {sidebarOpen && (
+              <div
+                className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+                onClick={() => setSidebarOpen(false)}
+              />
+            )}
+
+            {/* Main Content */}
+            <main className="flex-1 p-6 lg:p-8">
+              <div className="max-w-7xl mx-auto">
+                {renderContent()}
+              </div>
+            </main>
           </div>
-        </main>
-      </div>
+        </>
+      )}
     </div>
   );
 };
