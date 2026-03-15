@@ -24,9 +24,10 @@ const ContactSection = () => {
       }
 
       // Save message to Supabase
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('customer_messages')
         .insert([{
+          id: crypto.randomUUID(),
           name: formData.name,
           email: formData.email,
           phone: formData.phone || null,
@@ -35,9 +36,13 @@ const ContactSection = () => {
           read: false,
           priority: determinePriority(formData.subject, formData.message),
           created_at: new Date().toISOString(),
-        }]);
+        }])
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw new Error(error.message);
+      }
 
       // Success
       setSubmitStatus("success");
