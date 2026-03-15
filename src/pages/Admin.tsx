@@ -29,7 +29,7 @@ const Admin = () => {
     e.preventDefault();
     
     // Simple password check - no backend needed
-    if (password === "admin123") {
+    if (password === "pathum1234") {
       localStorage.setItem("adminToken", "simple-token");
       setIsAuthenticated(true);
     } else {
