@@ -4,11 +4,14 @@ import { Database } from '../types/database';
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
 
+// Fallback for development without Supabase setup
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Supabase URL and Anon Key are required. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file.');
+  console.warn('Supabase environment variables not found. Using localStorage fallback.');
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+export const supabase = supabaseUrl && supabaseAnonKey 
+  ? createClient<Database>(supabaseUrl, supabaseAnonKey)
+  : null;
 
 // Database types
 export interface CustomerMessage {
@@ -77,6 +80,11 @@ export interface Customer {
 export const supabaseService = {
   // Messages
   async sendMessage(messageData: Omit<CustomerMessage, 'id' | 'created_at' | 'read' | 'priority'>) {
+    if (!supabase) {
+      // Fallback to localStorage
+      return this.fallbackSendMessage(messageData);
+    }
+
     const { data, error } = await supabase
       .from('customer_messages')
       .insert([{
@@ -93,6 +101,11 @@ export const supabaseService = {
   },
 
   async getMessages() {
+    if (!supabase) {
+      // Fallback to localStorage
+      return this.fallbackGetMessages();
+    }
+
     const { data, error } = await supabase
       .from('customer_messages')
       .select('*')
@@ -103,6 +116,11 @@ export const supabaseService = {
   },
 
   async markMessageAsRead(messageId: string) {
+    if (!supabase) {
+      // Fallback to localStorage
+      return this.fallbackMarkMessageAsRead(messageId);
+    }
+
     const { error } = await supabase
       .from('customer_messages')
       .update({ read: true })
@@ -112,6 +130,11 @@ export const supabaseService = {
   },
 
   async markMessageAsUnread(messageId: string) {
+    if (!supabase) {
+      // Fallback to localStorage
+      return this.fallbackMarkMessageAsUnread(messageId);
+    }
+
     const { error } = await supabase
       .from('customer_messages')
       .update({ read: false })
@@ -121,6 +144,11 @@ export const supabaseService = {
   },
 
   async deleteMessage(messageId: string) {
+    if (!supabase) {
+      // Fallback to localStorage
+      return this.fallbackDeleteMessage(messageId);
+    }
+
     const { error } = await supabase
       .from('customer_messages')
       .delete()
@@ -131,6 +159,11 @@ export const supabaseService = {
 
   // Orders
   async saveOrder(orderData: Omit<CustomerOrder, 'id' | 'created_at' | 'updated_at'>) {
+    if (!supabase) {
+      // Fallback to localStorage
+      return this.fallbackSaveOrder(orderData);
+    }
+
     const { data, error } = await supabase
       .from('customer_orders')
       .insert([{
@@ -146,6 +179,11 @@ export const supabaseService = {
   },
 
   async getOrders() {
+    if (!supabase) {
+      // Fallback to localStorage
+      return this.fallbackGetOrders();
+    }
+
     const { data, error } = await supabase
       .from('customer_orders')
       .select('*')
@@ -156,6 +194,11 @@ export const supabaseService = {
   },
 
   async updateOrderStatus(orderId: string, status: CustomerOrder['status']) {
+    if (!supabase) {
+      // Fallback to localStorage
+      return this.fallbackUpdateOrderStatus(orderId, status);
+    }
+
     const { error } = await supabase
       .from('customer_orders')
       .update({ status, updated_at: new Date().toISOString() })
@@ -166,6 +209,11 @@ export const supabaseService = {
 
   // Customers
   async getCustomers() {
+    if (!supabase) {
+      // Fallback to localStorage
+      return this.fallbackGetCustomers();
+    }
+
     const { data, error } = await supabase
       .from('customers')
       .select('*')
@@ -176,6 +224,11 @@ export const supabaseService = {
   },
 
   async updateCustomer(customerId: string, updates: Partial<Customer>) {
+    if (!supabase) {
+      // Fallback to localStorage
+      return this.fallbackUpdateCustomer(customerId, updates);
+    }
+
     const { error } = await supabase
       .from('customers')
       .update(updates)
@@ -186,11 +239,136 @@ export const supabaseService = {
 
   // Analytics
   async getStats() {
+    if (!supabase) {
+      // Fallback to localStorage
+      return this.fallbackGetStats();
+    }
+
     const [messages, orders, customers] = await Promise.all([
       supabaseService.getMessages(),
       supabaseService.getOrders(),
       supabaseService.getCustomers(),
     ]);
+
+    const unreadMessages = messages.filter(m => !m.read).length;
+    const pendingOrders = orders.filter(o => o.status === 'pending').length;
+    const totalRevenue = orders
+      .filter(o => o.status === 'delivered' && o.payment_status === 'paid')
+      .reduce((sum, order) => sum + order.total, 0);
+
+    const newCustomers = customers.filter(customer => {
+      const createdAt = new Date(customer.registration_date);
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      return createdAt > weekAgo;
+    }).length;
+
+    return {
+      totalMessages: messages.length,
+      unreadMessages,
+      totalOrders: orders.length,
+      pendingOrders,
+      totalCustomers: customers.length,
+      newCustomers: newCustomers,
+      totalRevenue,
+      averageOrderValue: orders.length > 0 ? totalRevenue / orders.length : 0,
+    };
+  },
+
+  // Fallback methods for localStorage
+  fallbackSendMessage(messageData: Omit<CustomerMessage, 'id' | 'created_at' | 'read' | 'priority'>): CustomerMessage {
+    const messages = this.fallbackGetMessages();
+    const newMessage: CustomerMessage = {
+      ...messageData,
+      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      created_at: new Date().toISOString(),
+      read: false,
+      priority: determinePriority(messageData.subject, messageData.message),
+    };
+    messages.push(newMessage);
+    localStorage.setItem('customerMessages', JSON.stringify(messages));
+    return newMessage;
+  },
+
+  fallbackGetMessages(): CustomerMessage[] {
+    try {
+      return JSON.parse(localStorage.getItem('customerMessages') || '[]');
+    } catch {
+      return [];
+    }
+  },
+
+  fallbackMarkMessageAsRead(messageId: string) {
+    const messages = this.fallbackGetMessages();
+    const updatedMessages = messages.map(msg =>
+      msg.id === messageId ? { ...msg, read: true } : msg
+    );
+    localStorage.setItem('customerMessages', JSON.stringify(updatedMessages));
+  },
+
+  fallbackMarkMessageAsUnread(messageId: string) {
+    const messages = this.fallbackGetMessages();
+    const updatedMessages = messages.map(msg =>
+      msg.id === messageId ? { ...msg, read: false } : msg
+    );
+    localStorage.setItem('customerMessages', JSON.stringify(updatedMessages));
+  },
+
+  fallbackDeleteMessage(messageId: string) {
+    const messages = this.fallbackGetMessages();
+    const updatedMessages = messages.filter(msg => msg.id !== messageId);
+    localStorage.setItem('customerMessages', JSON.stringify(updatedMessages));
+  },
+
+  fallbackSaveOrder(orderData: Omit<CustomerOrder, 'id' | 'created_at' | 'updated_at'>): CustomerOrder {
+    const orders = this.fallbackGetOrders();
+    const newOrder: CustomerOrder = {
+      ...orderData,
+      id: `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    orders.push(newOrder);
+    localStorage.setItem('customerOrders', JSON.stringify(orders));
+    return newOrder;
+  },
+
+  fallbackGetOrders(): CustomerOrder[] {
+    try {
+      return JSON.parse(localStorage.getItem('customerOrders') || '[]');
+    } catch {
+      return [];
+    }
+  },
+
+  fallbackUpdateOrderStatus(orderId: string, status: CustomerOrder['status']) {
+    const orders = this.fallbackGetOrders();
+    const updatedOrders = orders.map(order =>
+      order.id === orderId ? { ...order, status, updated_at: new Date().toISOString() } : order
+    );
+    localStorage.setItem('customerOrders', JSON.stringify(updatedOrders));
+  },
+
+  fallbackGetCustomers(): Customer[] {
+    try {
+      return JSON.parse(localStorage.getItem('customers') || '[]');
+    } catch {
+      return [];
+    }
+  },
+
+  fallbackUpdateCustomer(customerId: string, updates: Partial<Customer>) {
+    const customers = this.fallbackGetCustomers();
+    const updatedCustomers = customers.map(customer =>
+      customer.id === customerId ? { ...customer, ...updates } : customer
+    );
+    localStorage.setItem('customers', JSON.stringify(updatedCustomers));
+  },
+
+  fallbackGetStats() {
+    const messages = this.fallbackGetMessages();
+    const orders = this.fallbackGetOrders();
+    const customers = this.fallbackGetCustomers();
 
     const unreadMessages = messages.filter(m => !m.read).length;
     const pendingOrders = orders.filter(o => o.status === 'pending').length;
