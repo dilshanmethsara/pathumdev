@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Settings } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const navLinks = [
   { label: "About", href: "#about" },
@@ -54,6 +55,13 @@ const Navbar = () => {
           >
             Hire Me
           </a>
+          <Link
+            to="/admin"
+            className="p-2 text-foreground/70 hover:text-primary transition-colors cursor-button"
+            title="Admin Panel"
+          >
+            <Settings className="w-5 h-5" />
+          </Link>
         </div>
 
         {/* Mobile Toggle */}
@@ -92,6 +100,14 @@ const Navbar = () => {
             >
               Hire Me
             </a>
+            <Link
+              to="/admin"
+              onClick={() => setMobileOpen(false)}
+              className="text-sm font-medium text-foreground/70 hover:text-primary transition-colors cursor-link flex items-center gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              Admin Panel
+            </Link>
           </motion.div>
         )}
       </AnimatePresence>
