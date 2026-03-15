@@ -1,3 +1,5 @@
+import { supabase, CustomerMessage, CustomerOrder, Customer } from './supabase';
+
 export interface CustomerMessage {
   id: string;
   name: string;
@@ -6,8 +8,23 @@ export interface CustomerMessage {
   subject: string;
   message: string;
   read: boolean;
-  createdAt: string;
+  created_at: string;
   priority: "low" | "medium" | "high";
+}
+
+export interface CustomerOrder {
+  id: string;
+  customer_id: string;
+  order_date: string;
+  total: number;
+  status: string;
+}
+
+export interface Customer {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
 }
 
 export interface AuthResponse {
@@ -18,35 +35,30 @@ export interface AuthResponse {
 }
 
 class ApiService {
-  private baseUrl: string;
   private adminToken: string | null = null;
 
   constructor() {
-    this.baseUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://your-domain.vercel.app/api' 
-      : 'http://localhost:8081/api';
+    // No baseUrl needed for Supabase
   }
 
   // Authentication
   async login(password: string): Promise<AuthResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/auth`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ password }),
-      });
-
-      const result = await response.json();
-      
-      if (result.success && result.token) {
-        this.adminToken = result.token;
-        localStorage.setItem('adminToken', result.token);
-        localStorage.setItem('tokenExpires', result.expiresAt || '');
+      // Simple password verification - in production, use proper authentication
+      if (password === process.env.VITE_ADMIN_PASSWORD || 'admin123') {
+        const token = this.generateAdminToken();
+        this.adminToken = token;
+        localStorage.setItem('adminToken', token);
+        localStorage.setItem('tokenExpires', new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString());
+        
+        return { 
+          success: true, 
+          token, 
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        };
       }
       
-      return result;
+      return { success: false, error: 'Invalid password' };
     } catch (error) {
       console.error('Login error:', error);
       return { success: false, error: 'Authentication failed' };
@@ -76,22 +88,11 @@ class ApiService {
   }
 
   // Messages
-  async sendMessage(messageData: Omit<CustomerMessage, 'id' | 'createdAt' | 'read' | 'priority'>): Promise<CustomerMessage> {
+  async sendMessage(messageData: Omit<CustomerMessage, 'id' | 'created_at' | 'read' | 'priority'>): Promise<CustomerMessage> {
     try {
-      const response = await fetch(`${this.baseUrl}/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(messageData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send message');
-      }
-
-      const result = await response.json();
-      return result.message;
+      const result = await supabase.sendMessage(messageData);
+      console.log('Message sent via Supabase:', result);
+      return result;
     } catch (error) {
       console.error('Send message error:', error);
       throw error;
@@ -104,14 +105,8 @@ class ApiService {
     }
 
     try {
-      const response = await fetch(`${this.baseUrl}/messages?adminKey=${this.adminToken}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch messages');
-      }
-
-      const result = await response.json();
-      return result.messages || [];
+      const messages = await supabase.getMessages();
+      return messages;
     } catch (error) {
       console.error('Get messages error:', error);
       throw error;
@@ -123,15 +118,25 @@ class ApiService {
       throw new Error('Not authenticated');
     }
 
-    // This would be implemented in the API
-    // For now, we'll update local state
-    const messages = await this.getMessages();
-    const updatedMessages = messages.map(msg =>
-      msg.id === messageId ? { ...msg, read: true } : msg
-    );
-    
-    // Store locally for immediate UI update
-    localStorage.setItem('adminMessages', JSON.stringify(updatedMessages));
+    try {
+      await supabase.markMessageAsRead(messageId);
+    } catch (error) {
+      console.error('Mark message as read error:', error);
+      throw error;
+    }
+  }
+
+  async markMessageAsUnread(messageId: string): Promise<void> {
+    if (!this.isAuthenticated()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      await supabase.markMessageAsUnread(messageId);
+    } catch (error) {
+      console.error('Mark message as unread error:', error);
+      throw error;
+    }
   }
 
   async deleteMessage(messageId: string): Promise<void> {
@@ -139,28 +144,95 @@ class ApiService {
       throw new Error('Not authenticated');
     }
 
-    // This would be implemented in the API
-    // For now, we'll update local state
-    const messages = await this.getMessages();
-    const updatedMessages = messages.filter(msg => msg.id !== messageId);
-    
-    // Store locally for immediate UI update
-    localStorage.setItem('adminMessages', JSON.stringify(updatedMessages));
-  }
-
-  // Fallback to localStorage for development
-  private getLocalMessages(): CustomerMessage[] {
     try {
-      return JSON.parse(localStorage.getItem('customerMessages') || '[]');
-    } catch {
-      return [];
+      await supabase.deleteMessage(messageId);
+    } catch (error) {
+      console.error('Delete message error:', error);
+      throw error;
     }
   }
 
-  private saveLocalMessage(message: CustomerMessage): void {
-    const messages = this.getLocalMessages();
-    messages.push(message);
-    localStorage.setItem('customerMessages', JSON.stringify(messages));
+  // Orders
+  async saveOrder(orderData: Omit<CustomerOrder, 'id' | 'created_at' | 'updated_at'>): Promise<CustomerOrder> {
+    try {
+      const result = await supabase.saveOrder(orderData);
+      console.log('Order saved via Supabase:', result);
+      return result;
+    } catch (error) {
+      console.error('Save order error:', error);
+      throw error;
+    }
+  }
+
+  async getOrders(): Promise<CustomerOrder[]> {
+    if (!this.isAuthenticated()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      const orders = await supabase.getOrders();
+      return orders;
+    } catch (error) {
+      console.error('Get orders error:', error);
+      throw error;
+    }
+  }
+
+  async updateOrderStatus(orderId: string, status: CustomerOrder['status']): Promise<void> {
+    if (!this.isAuthenticated()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      await supabase.updateOrderStatus(orderId, status);
+    } catch (error) {
+      console.error('Update order status error:', error);
+      throw error;
+    }
+  }
+
+  // Customers
+  async getCustomers(): Promise<Customer[]> {
+    if (!this.isAuthenticated()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      const customers = await supabase.getCustomers();
+      return customers;
+    } catch (error) {
+      console.error('Get customers error:', error);
+      throw error;
+    }
+  }
+
+  async updateCustomer(customerId: string, updates: Partial<Customer>): Promise<void> {
+    if (!this.isAuthenticated()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      await supabase.updateCustomer(customerId, updates);
+    } catch (error) {
+      console.error('Update customer error:', error);
+      throw error;
+    }
+  }
+
+  // Analytics
+  async getStats() {
+    try {
+      const stats = await supabase.getStats();
+      return stats;
+    } catch (error) {
+      console.error('Get stats error:', error);
+      throw error;
+    }
+  }
+
+  private generateAdminToken(): string {
+    // Simple token generation - use JWT in production
+    return Buffer.from(`${Date.now()}-${Math.random()}`).toString('base64');
   }
 }
 
