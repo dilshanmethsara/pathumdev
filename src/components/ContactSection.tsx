@@ -1,6 +1,7 @@
 import { useState, FormEvent } from "react";
 import { Send, MessageCircle, Mail, MapPin, CheckCircle, AlertCircle, Phone } from "lucide-react";
 import ScrollReveal from "./ScrollReveal";
+import { supabase } from "../lib/supabase";
 
 const ContactSection = () => {
   const [formData, setFormData] = useState({ name: "", email: "", phone: "", subject: "", message: "" });
@@ -22,13 +23,25 @@ const ContactSection = () => {
         throw new Error("Please enter a valid email address");
       }
 
-      // Open email client
-      const mailtoLink = `mailto:dmcreatorstudio04@gmail.com?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(formData.message)}%0A%0AFrom: ${formData.name} (${formData.email})${formData.phone ? `%0APhone: ${formData.phone}` : ""}`;
-      window.open(mailtoLink);
+      // Save message to Supabase
+      const { error } = await supabase
+        .from('customer_messages')
+        .insert([{
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone || null,
+          subject: formData.subject,
+          message: formData.message,
+          read: false,
+          priority: determinePriority(formData.subject, formData.message),
+          created_at: new Date().toISOString(),
+        }]);
+
+      if (error) throw error;
 
       // Success
       setSubmitStatus("success");
-      setSubmitMessage("Thank you for your message! Your email client should open now.");
+      setSubmitMessage("Thank you for your message! We'll get back to you soon.");
       
       // Reset form
       setFormData({ name: "", email: "", phone: "", subject: "", message: "" });
@@ -36,7 +49,7 @@ const ContactSection = () => {
     } catch (error) {
       console.error("Error:", error);
       setSubmitStatus("error");
-      setSubmitMessage(error instanceof Error ? error.message : "Something went wrong. Please try again.");
+      setSubmitMessage(error instanceof Error ? error.message : "Failed to send message. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -213,5 +226,16 @@ const ContactSection = () => {
     </section>
   );
 };
+
+function determinePriority(subject: string, message: string): "low" | "medium" | "high" {
+  const text = (subject + " " + message).toLowerCase();
+  
+  const highKeywords = ["urgent", "emergency", "asap", "immediately", "critical", "important"];
+  const mediumKeywords = ["quote", "pricing", "cost", "price", "project", "development"];
+  
+  if (highKeywords.some(keyword => text.includes(keyword))) return "high";
+  if (mediumKeywords.some(keyword => text.includes(keyword))) return "medium";
+  return "low";
+}
 
 export default ContactSection;
