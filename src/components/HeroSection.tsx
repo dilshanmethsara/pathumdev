@@ -22,7 +22,7 @@ const HeroSection = () => {
         >
           <div className="inline-flex items-center gap-2 bg-primary/5 border border-primary/10 rounded-full px-4 py-2 mb-8">
             <Code2 size={16} className="text-primary" />
-            <span className="text-sm font-medium text-primary">Professional Web Development</span>
+            <span className="text-sm font-medium text-primary">PathumDev - Professional Web Development</span>
           </div>
         </motion.div>
 
@@ -45,8 +45,9 @@ const HeroSection = () => {
           transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
           className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 font-body"
         >
-          I design and develop stunning, responsive websites that help businesses
-          grow and stand out online. Let's bring your vision to life.
+          PathumDev by Dilshan Methsara - I design and develop stunning, responsive websites 
+          that help businesses grow and stand out online. Professional web development services 
+          in Sri Lanka. Let's bring your vision to life.
         </motion.p>
 
         <motion.div

@@ -18,8 +18,8 @@ const AboutSection = () => (
             Passionate About Creating Exceptional Websites
           </h2>
           <p className="text-muted-foreground text-lg leading-relaxed">
-            Hi, I'm <span className="font-semibold text-navy">Dilshan Methsara</span>, a web developer
-            who creates modern, responsive, and attractive websites for businesses and personal brands.
+            Hi, I'm <span className="font-semibold text-navy">Dilshan Methsara</span>, founder of PathumDev, a web development
+            studio that creates modern, responsive, and attractive websites for businesses and personal brands.
             I'm dedicated to delivering pixel-perfect designs with clean code that helps your business succeed online.
           </p>
         </div>
