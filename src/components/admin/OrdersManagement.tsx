@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { ShoppingCart, CheckCircle, Trash2, Package, Eye } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ShoppingCart, CheckCircle, Trash2, Package } from "lucide-react";
+import { supabase } from "../../lib/supabase";
 
 interface OrderItem {
   id: string;
@@ -22,49 +23,53 @@ interface CustomerOrder {
 }
 
 const OrdersManagement = () => {
-  const [orders] = useState<CustomerOrder[]>([
-    {
-      id: "ORD-001",
-      customerName: "John Smith",
-      customerEmail: "john@example.com",
-      customerPhone: "+1 555-1234",
-      items: [
-        { id: "1", name: "Website Design Package", quantity: 1, price: 1200 },
-        { id: "2", name: "SEO Setup", quantity: 1, price: 300 },
-      ],
-      total: 1500,
-      status: "pending",
-      paymentMethod: "Credit Card",
-      paymentStatus: "pending",
-      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: "ORD-002",
-      customerName: "Sarah Johnson",
-      customerEmail: "sarah@example.com",
-      items: [
-        { id: "3", name: "E-commerce Store", quantity: 1, price: 2500 },
-      ],
-      total: 2500,
-      status: "processing",
-      paymentMethod: "Bank Transfer",
-      paymentStatus: "paid",
-      createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: "ORD-003",
-      customerName: "Mike Davis",
-      customerEmail: "mike@example.com",
-      items: [
-        { id: "4", name: "Website Maintenance", quantity: 6, price: 100 },
-      ],
-      total: 600,
-      status: "delivered",
-      paymentMethod: "PayPal",
-      paymentStatus: "paid",
-      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-  ]);
+  const [orders, setOrders] = useState<CustomerOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    try {
+      const { data } = await supabase
+        .from('customer_orders')
+        .select('*')
+        .order('created_at', { ascending: false }) as { data: any[] | null };
+      
+      setOrders(data || []);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateStatus = async (id: string, newStatus: CustomerOrder['status']) => {
+    try {
+      await supabase
+        .from('customer_orders')
+        .update({ status })
+        .eq('id', id);
+      
+      setOrders(orders.map(o => o.id === id ? { ...o, status: newStatus } : o));
+    } catch (error) {
+      console.error('Error updating order:', error);
+    }
+  };
+
+  const deleteOrder = async (id: string) => {
+    try {
+      await supabase
+        .from('customer_orders')
+        .delete()
+        .eq('id', id);
+      
+      setOrders(orders.filter(o => o.id !== id));
+    } catch (error) {
+      console.error('Error deleting order:', error);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -84,59 +89,73 @@ const OrdersManagement = () => {
         <p className="text-gray-600">Manage customer orders and payments.</p>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">All Orders</h2>
-            <span className="text-sm text-gray-500">{orders.length} total</span>
-          </div>
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
-        <div className="divide-y divide-gray-200">
-          {orders.map((order) => (
-            <div key={order.id} className="p-6 hover:bg-gray-50 transition-colors">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                    <Package className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium text-gray-900">{order.id}</h3>
-                      <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(order.status)}`}>
-                        {order.status}
-                      </span>
+      ) : (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">All Orders</h2>
+              <span className="text-sm text-gray-500">{orders.length} total</span>
+            </div>
+          </div>
+          <div className="divide-y divide-gray-200">
+            {orders.map((order) => (
+              <div key={order.id} className="p-6 hover:bg-gray-50 transition-colors">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                      <Package className="w-5 h-5 text-green-600" />
                     </div>
-                    <p className="text-sm text-gray-500">{order.customerName} • {order.customerEmail}</p>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {order.items.length} items • ${order.total}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      {new Date(order.createdAt).toLocaleString()}
-                    </p>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium text-gray-900">{order.id}</h3>
+                        <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(order.status)}`}>
+                          {order.status}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-500">{order.customerName} • {order.customerEmail}</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {order.items?.length || 0} items • ${order.total}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {new Date(order.createdAt).toLocaleString()}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                    <Eye className="w-4 h-4" />
-                  </button>
-                  <button className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
-                    <CheckCircle className="w-4 h-4" />
-                  </button>
-                  <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={order.status}
+                      onChange={(e) => updateStatus(order.id, e.target.value as CustomerOrder['status'])}
+                      className="text-xs border border-gray-300 rounded-lg px-2 py-1"
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="processing">Processing</option>
+                      <option value="shipped">Shipped</option>
+                      <option value="delivered">Delivered</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                    <button 
+                      onClick={() => deleteOrder(order.id)}
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="bg-yellow-50 rounded-xl p-6 border border-yellow-100">
+      <div className="bg-green-50 rounded-xl p-6 border border-green-100">
         <div className="flex items-center gap-3">
-          <ShoppingCart className="w-5 h-5 text-yellow-600" />
-          <p className="text-yellow-700">
-            This is showing static demo orders. Connect to a backend to manage real orders.
+          <ShoppingCart className="w-5 h-5 text-green-600" />
+          <p className="text-green-700">
+            Connected to Supabase. Orders are now fetched from your database.
           </p>
         </div>
       </div>
