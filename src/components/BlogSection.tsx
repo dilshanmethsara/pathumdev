@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Calendar, Clock, Eye, ArrowRight, Search, Filter, Tag } from "lucide-react";
+import { Calendar, Clock, Eye, ArrowRight, Search, Filter, Tag, X } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 interface BlogPost {
@@ -28,6 +28,7 @@ const BlogSection = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedTag, setSelectedTag] = useState("all");
+  const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
 
   useEffect(() => {
     fetchPosts();
@@ -219,7 +220,10 @@ const BlogSection = () => {
                     </div>
                     
                     <button
-                      onClick={() => incrementViews(post.id)}
+                      onClick={() => {
+                        incrementViews(post.id);
+                        setSelectedPost(post);
+                      }}
                       className="flex items-center gap-2 text-primary hover:text-primary/80 font-medium text-sm transition-colors"
                     >
                       Read More
@@ -247,6 +251,95 @@ const BlogSection = () => {
           </p>
         </div>
       </div>
+
+      {/* Blog Post Modal */}
+      {selectedPost && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-navy">{selectedPost.title}</h2>
+              <button
+                onClick={() => setSelectedPost(null)}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              {selectedPost.featured_image && (
+                <div className="mb-6">
+                  <img
+                    src={selectedPost.featured_image}
+                    alt={selectedPost.title}
+                    className="w-full h-64 object-cover rounded-lg"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
+              
+              <div className="flex items-center gap-4 text-sm text-gray-500 mb-6">
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-4 h-4" />
+                  {formatDate(selectedPost.published_at)}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  {selectedPost.read_time} min read
+                </span>
+                <span className="flex items-center gap-1">
+                  <Eye className="w-4 h-4" />
+                  {selectedPost.views} views
+                </span>
+                <span className="px-2 py-1 text-xs rounded-full bg-primary/10 text-primary font-medium">
+                  {selectedPost.category}
+                </span>
+              </div>
+              
+              {selectedPost.excerpt && (
+                <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                  <p className="text-gray-700 italic">{selectedPost.excerpt}</p>
+                </div>
+              )}
+              
+              <div className="prose prose-lg max-w-none">
+                <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
+                  {selectedPost.content}
+                </div>
+              </div>
+              
+              {selectedPost.tags.length > 0 && (
+                <div className="mt-8 pt-6 border-t border-gray-200">
+                  <h3 className="text-sm font-semibold text-gray-600 mb-3">Tags</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedPost.tags.map(tag => (
+                      <span key={tag} className="px-3 py-1 text-xs rounded-full bg-gray-100 text-gray-600">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-600">
+                    Written by <span className="font-semibold">{selectedPost.author}</span>
+                  </p>
+                  <button
+                    onClick={() => setSelectedPost(null)}
+                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };
