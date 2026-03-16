@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { MessageSquare, ShoppingCart, Users, BarChart3, LogOut, Menu, X, Lock } from "lucide-react";
+import { MessageSquare, ShoppingCart, Users, BarChart3, LogOut, Menu, X, Lock, FileText } from "lucide-react";
 import AdminDashboard from "../components/admin/AdminDashboard";
 import MessagesManagement from "../components/admin/MessagesManagement";
 import OrdersManagement from "../components/admin/OrdersManagement";
 import CustomersManagement from "../components/admin/CustomersManagement";
 import Analytics from "../components/admin/Analytics";
+import BlogManagement from "../components/admin/BlogManagement";
 
-type AdminSection = "dashboard" | "messages" | "orders" | "customers" | "analytics";
+type AdminSection = "dashboard" | "messages" | "orders" | "customers" | "analytics" | "blog";
 
 const Admin = () => {
   const [activeSection, setActiveSection] = useState<AdminSection>("dashboard");
@@ -49,6 +50,7 @@ const Admin = () => {
     { id: "orders", label: "Orders", icon: ShoppingCart },
     { id: "customers", label: "Customers", icon: Users },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
+    { id: "blog", label: "Blog Posts", icon: FileText },
   ];
 
   const renderContent = () => {
@@ -63,6 +65,8 @@ const Admin = () => {
         return <CustomersManagement />;
       case "analytics":
         return <Analytics />;
+      case "blog":
+        return <BlogManagement />;
       default:
         return <AdminDashboard />;
     }
